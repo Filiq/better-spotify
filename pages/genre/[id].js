@@ -1,16 +1,20 @@
-import Sidebar from "../components/Sidebar";
-import { getSession } from "next-auth/react";
-import Player from "../components/Player";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Playlists from "../components/Playlists";
+import Sidebar from "../../components/Sidebar";
+import Profile from "../../components/Profile";
+import Songs from "../../components/Songs";
+import Player from "../../components/Player";
+import getColor from "../../lib/getColor";
 import { useEffect, useState } from "react";
-import getColor from "../lib/getColor";
-import getPlaylists from "../lib/getPlaylists";
-import Profile from "../components/Profile";
+import { getSession } from "next-auth/react";
+import formatNumber from "../../lib/formatNumber";
+import Link from "next/link";
+import PlaylistHeader from "../../components/PlaylistHeader";
+import getGenre from "../../lib/getGenre";
+import capitalizeFirstLetter from "../../lib/capitalizeFirstLetter";
 
-export default function HomePage({ playlists }) {
-  const [color, setColor] = useState(null);
+export default function GenrePage({ genre, tracks }) {
+  const [color, setColor] = useState("");
 
   useEffect(() => {
     setColor(getColor().from);
@@ -26,19 +30,25 @@ export default function HomePage({ playlists }) {
             className={`flex items-end space-x-7 bg-gradient-to-b to-black ${color} h-80 text-white p-8`}
           >
             <div>
-              <p>PLAYLIST</p>
+              <p>GENRE</p>
               <h1 className="text-2xl font-bold md:text-3xl xl:text-5xl">
-                Your Playlists{" "}
+                {genre
+                  .split(" ")
+                  .map(
+                    (word, idx, arr) =>
+                      `${capitalizeFirstLetter(word)}${
+                        idx === arr.length - 1 ? "" : " "
+                      }`
+                  )}{" "}
                 <span className="text-xs font-normal text-gray-500 md:text-sm">
-                  Created by <span className="font-bold">You</span>
-                  {", "}
-                  {playlists.total} playlist{playlists.total !== 1 && "s"}
+                  {tracks.length} track
+                  {tracks.length !== 1 && "s"}
                 </span>
               </h1>
             </div>
           </section>
           <div>
-            <Playlists playlists={playlists?.items} />
+            <Songs playlist={tracks} />
           </div>
         </div>
         <ToastContainer
@@ -62,26 +72,37 @@ export default function HomePage({ playlists }) {
 }
 
 export async function getServerSideProps(ctx) {
+  const id = ctx.params.id;
+
+  if (id === "") {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
   const session = await getSession(ctx);
 
-  const playlists = await getPlaylists({
-    id: session.user.username,
+  const { tracks } = await getGenre({
     token: session.user.accessToken,
+    id,
   });
 
-  if (!playlists) {
+  if (!tracks) {
     return {
-      props: {
-        session,
-        playlists: [],
+      redirect: {
+        destination: "/",
+        permanent: false,
       },
     };
   }
 
   return {
     props: {
-      session,
-      playlists,
+      tracks,
+      genre: id,
     },
   };
 }

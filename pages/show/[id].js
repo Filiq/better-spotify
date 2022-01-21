@@ -1,16 +1,16 @@
-import Sidebar from "../components/Sidebar";
-import { getSession } from "next-auth/react";
-import Player from "../components/Player";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Playlists from "../components/Playlists";
+import Sidebar from "../../components/Sidebar";
+import Profile from "../../components/Profile";
+import Player from "../../components/Player";
+import getColor from "../../lib/getColor";
 import { useEffect, useState } from "react";
-import getColor from "../lib/getColor";
-import getPlaylists from "../lib/getPlaylists";
-import Profile from "../components/Profile";
+import getShow from "../../lib/getShow";
+import { getSession } from "next-auth/react";
+import Episodes from "../../components/Episodes";
 
-export default function HomePage({ playlists }) {
-  const [color, setColor] = useState(null);
+export default function ShowPage({ show }) {
+  const [color, setColor] = useState("");
 
   useEffect(() => {
     setColor(getColor().from);
@@ -22,23 +22,31 @@ export default function HomePage({ playlists }) {
         <Sidebar />
         <Profile />
         <div className="flex-grow w-full h-screen overflow-y-scroll">
+          {/* //scrollbar-hide */}
           <section
             className={`flex items-end space-x-7 bg-gradient-to-b to-black ${color} h-80 text-white p-8`}
           >
+            <img
+              className="object-cover shadow-2xl h-44 w-44"
+              src={show?.images?.[0]?.url}
+              alt=""
+            />
             <div>
-              <p>PLAYLIST</p>
+              <p>PODCAST</p>
               <h1 className="text-2xl font-bold md:text-3xl xl:text-5xl">
-                Your Playlists{" "}
+                {show?.name}{" "}
                 <span className="text-xs font-normal text-gray-500 md:text-sm">
-                  Created by <span className="font-bold">You</span>
+                  Published by{" "}
+                  <span className="font-bold">{show?.publisher}</span>
                   {", "}
-                  {playlists.total} playlist{playlists.total !== 1 && "s"}
+                  {show.total_episodes} episode
+                  {show.total_episodes !== 1 && "s"}
                 </span>
               </h1>
             </div>
           </section>
           <div>
-            <Playlists playlists={playlists?.items} />
+            <Episodes show={show?.episodes?.items} />
           </div>
         </div>
         <ToastContainer
@@ -62,26 +70,33 @@ export default function HomePage({ playlists }) {
 }
 
 export async function getServerSideProps(ctx) {
+  const id = ctx.params.id;
+
+  if (id === "") {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
   const session = await getSession(ctx);
 
-  const playlists = await getPlaylists({
-    id: session.user.username,
-    token: session.user.accessToken,
-  });
+  const show = await getShow({ id, token: session.user.accessToken });
 
-  if (!playlists) {
+  if (!show) {
     return {
-      props: {
-        session,
-        playlists: [],
+      redirect: {
+        destination: "/",
+        permanent: false,
       },
     };
   }
 
   return {
     props: {
-      session,
-      playlists,
+      show,
     },
   };
 }

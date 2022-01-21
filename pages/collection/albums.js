@@ -1,16 +1,16 @@
-import Sidebar from "../components/Sidebar";
 import { getSession } from "next-auth/react";
-import Player from "../components/Player";
+import { useEffect, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Playlists from "../components/Playlists";
-import { useEffect, useState } from "react";
-import getColor from "../lib/getColor";
-import getPlaylists from "../lib/getPlaylists";
-import Profile from "../components/Profile";
+import Player from "../../components/Player";
+import Profile from "../../components/Profile";
+import Sidebar from "../../components/Sidebar";
+import Albums from "../../components/Albums";
+import getColor from "../../lib/getColor";
+import getLikedAlbums from "../../lib/getLikedAlbums";
 
-export default function HomePage({ playlists }) {
-  const [color, setColor] = useState(null);
+export default function AlbumsPage({ albums }) {
+  const [color, setColor] = useState("");
 
   useEffect(() => {
     setColor(getColor().from);
@@ -26,19 +26,17 @@ export default function HomePage({ playlists }) {
             className={`flex items-end space-x-7 bg-gradient-to-b to-black ${color} h-80 text-white p-8`}
           >
             <div>
-              <p>PLAYLIST</p>
+              <p>ALBUMS</p>
               <h1 className="text-2xl font-bold md:text-3xl xl:text-5xl">
-                Your Playlists{" "}
+                Favorite Albums{" "}
                 <span className="text-xs font-normal text-gray-500 md:text-sm">
-                  Created by <span className="font-bold">You</span>
-                  {", "}
-                  {playlists.total} playlist{playlists.total !== 1 && "s"}
+                  {albums.total} album{albums.total !== 1 && "s"}
                 </span>
               </h1>
             </div>
           </section>
           <div>
-            <Playlists playlists={playlists?.items} />
+            <Albums albums={albums?.items} />
           </div>
         </div>
         <ToastContainer
@@ -64,24 +62,20 @@ export default function HomePage({ playlists }) {
 export async function getServerSideProps(ctx) {
   const session = await getSession(ctx);
 
-  const playlists = await getPlaylists({
-    id: session.user.username,
-    token: session.user.accessToken,
-  });
+  const albums = await getLikedAlbums({ token: session.user.accessToken });
 
-  if (!playlists) {
+  if (!albums) {
     return {
-      props: {
-        session,
-        playlists: [],
+      redirect: {
+        destination: "/",
+        permanent: false,
       },
     };
   }
 
   return {
     props: {
-      session,
-      playlists,
+      albums,
     },
   };
 }

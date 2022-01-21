@@ -1,16 +1,16 @@
-import Sidebar from "../components/Sidebar";
 import { getSession } from "next-auth/react";
-import Player from "../components/Player";
+import { useEffect, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Playlists from "../components/Playlists";
-import { useEffect, useState } from "react";
-import getColor from "../lib/getColor";
-import getPlaylists from "../lib/getPlaylists";
-import Profile from "../components/Profile";
+import Player from "../../components/Player";
+import Profile from "../../components/Profile";
+import Sidebar from "../../components/Sidebar";
+import Songs from "../../components/Songs";
+import getColor from "../../lib/getColor";
+import getLikedPlaylist from "../../lib/getLikedPlaylist";
 
-export default function HomePage({ playlists }) {
-  const [color, setColor] = useState(null);
+export default function TracksPage({ playlist }) {
+  const [color, setColor] = useState("");
 
   useEffect(() => {
     setColor(getColor().from);
@@ -28,17 +28,15 @@ export default function HomePage({ playlists }) {
             <div>
               <p>PLAYLIST</p>
               <h1 className="text-2xl font-bold md:text-3xl xl:text-5xl">
-                Your Playlists{" "}
+                Liked Songs{" "}
                 <span className="text-xs font-normal text-gray-500 md:text-sm">
-                  Created by <span className="font-bold">You</span>
-                  {", "}
-                  {playlists.total} playlist{playlists.total !== 1 && "s"}
+                  {playlist.total} track{playlist.total !== 1 && "s"}
                 </span>
               </h1>
             </div>
           </section>
           <div>
-            <Playlists playlists={playlists?.items} />
+            <Songs playlist={playlist?.items} playlist_id={playlist.id} />
           </div>
         </div>
         <ToastContainer
@@ -64,24 +62,20 @@ export default function HomePage({ playlists }) {
 export async function getServerSideProps(ctx) {
   const session = await getSession(ctx);
 
-  const playlists = await getPlaylists({
-    id: session.user.username,
-    token: session.user.accessToken,
-  });
+  const playlist = await getLikedPlaylist({ token: session.user.accessToken });
 
-  if (!playlists) {
+  if (!playlist) {
     return {
-      props: {
-        session,
-        playlists: [],
+      redirect: {
+        destination: "/",
+        permanent: false,
       },
     };
   }
 
   return {
     props: {
-      session,
-      playlists,
+      playlist,
     },
   };
 }
